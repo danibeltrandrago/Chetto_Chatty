@@ -48,16 +48,21 @@ process_requests(Clients, Servers, NameClients) ->
 			even_print(NameClients),
 			process_requests(Clients, Servers, NameClients);
 
+		remove_users ->
+			remove_user(Clients),
+			io:format("All Clients removed~n"),
+			process_requests([], Servers, []);
+
 		%% Messages between servers
 		% Stop the server
 		disconnect ->
-			io:format("Bye!~n", []),
+			io:format("Bye!~n"),
 			NewServers = lists:delete(self(), Servers),
 			broadcast(NewServers, {update_servers, NewServers}),
 			unregister(myserver);
 		% Server joins
 		{server_join_req, From} ->
-			io:format("New server joins!~n", []),
+			io:format("New server joins!~n"),
 			NewServers = [From|Servers],
 			broadcast(NewServers, {update_servers, NewServers}),
 			process_requests(Clients, NewServers, NameClients);
@@ -67,7 +72,7 @@ process_requests(Clients, Servers, NameClients) ->
 			process_requests(Clients, NewServers, NameClients);
 		% Other messages are relayed to clients
 		RelayMessage ->
-			io:format("Relaying message...~n", []),
+			io:format("Relaying message...~n"),
 			broadcast(Clients, RelayMessage),
 			process_requests(Clients, Servers, NameClients)
 
@@ -85,10 +90,17 @@ process_commands(ServerPid) ->
 	Text = io:get_line("-> "),
     if Text == "List_clients\n" ->
         ServerPid ! print_users;
+
+       Text == "Remove_all\n" ->
+       	io:format("Removing clients...~n"),
+       	ServerPid ! remove_users;
+       
        Text == "exit\n" ->
-       	io:format("remove~n");
+       	io:format("Exiting...~n"),
+       	ServerPid ! disconnect;
+       
        true ->
-        io:format("divisible by 5~n")
+        io:format("Este comando no existe, Introduce 'help' para ver las opciones.~n")
     end,
 	process_commands(ServerPid).
 
@@ -99,3 +111,10 @@ even_print([H|T]) when H rem 2 /= 0 ->
 even_print([H|T]) ->
     io:format("~s~n", [H]),
     [H|even_print(T)].
+
+remove_user(Clients) ->
+	P = fun(Client) ->
+			io:format("[Removed]~n"),
+			Client ! exit
+		end,
+	lists:map(P, Clients).

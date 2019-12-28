@@ -26,6 +26,7 @@ process_requests() ->
 			io:format("[~s] ~s", [Name, Text]),
 			process_requests();
 		exit ->
+			io:format("El servidor te ha expulsado del canal, Introduce 'exit' para salir.", []),
 			ok
 	end.
 
