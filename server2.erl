@@ -64,9 +64,11 @@ process_requests(Clients, Servers) ->
 		%% Messages between servers
 		% Stop the server
 		disconnect ->
-			io:format("Bye!~n"),
 			NewServers = lists:delete(self(), Servers),
+			io:format("Redireccionant clients!~n"),
+			broadcast(Clients, {change_server, NewServers}),
 			broadcast_server(NewServers, {update_servers, NewServers}),
+			io:format("Bye!~n"),
 			unregister(myserver);
 		% Server joins
 		{server_join_req, From} ->
@@ -108,13 +110,11 @@ process_commands(ServerPid) ->
         ServerPid ! {request_list_users, ServerPid},
         process_commands(ServerPid);
 
-       Text == "Remove_all\n" ->
-       	io:format("Removing clients...~n"),
+       Text == "Remove_clients\n" ->
        	ServerPid ! remove_users,
        	process_commands(ServerPid);
        
        Text == "exit\n" ->
-       	io:format("Exiting...~n"),
        	ServerPid ! disconnect;
        
        true ->
@@ -131,6 +131,7 @@ print_name(Clients) ->
 	lists:map(P, Clients).
 
 remove_user(Clients) ->
+	io:format("Removing clients...~n"),
 	P = fun(Client) ->
 			Direction = element(1, Client),
 			Direction ! exit
