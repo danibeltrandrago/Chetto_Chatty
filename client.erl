@@ -1,5 +1,7 @@
 -module(client).
 
+-import(lists,[last/1]).
+
 %% Exported Functions
 -export([start/2, init_client/2]).
 
@@ -10,23 +12,34 @@ start(ServerPid, MyName) ->
 
 init_client(ServerPid, MyName) ->
 	ServerPid ! {client_join_req, MyName, self()},
-	process_requests().
+	process_requests(MyName).
 
 %% Local Functions
 %% This is the background task logic
-process_requests() ->
+process_requests(MyName) ->
 	receive
 		{join, Name} ->
 			io:format("[JOIN] ~s joined~n", [Name]),
-			process_requests();
+			process_requests(MyName);
 		{leave, Name} ->
 			io:format("[EXIT] ~s left~n", [Name]),
 			process_requests();
 		{message, Name, Text} ->
 			io:format("[~s] ~s", [Name, Text]),
-			process_requests();
+			process_requests(MyName);
+
+
+		{change_server, Servers} ->
+			if length(Servers) > 0 ->
+					io:format("El servidor se ha desconectado.\nReconectando con otro servidor...\n"),
+					NewServer = last(Servers),
+					start(NewServer, MyName),
+					ok;
+				true ->
+					io:format("El servidor se ha desconectado y no existen mas servidores.\nEscribe 'exit' para salir.\n")
+			end;
 		exit ->
-			io:format("El servidor te ha expulsado del canal, Introduce 'exit' para salir.", []),
+			io:format("El servidor te ha expulsado del canal, Introduce 'exit' para salir.\n"),
 			ok
 	end.
 
@@ -34,13 +47,11 @@ process_requests() ->
 process_commands(ServerPid, MyName, ClientPid) ->
 	%% Read from the standard input and send to server
 	Text = io:get_line("-> "),
-	if
-		Text == "exit\n" ->
+	if  Text == "exit\n" ->
 			ServerPid ! {client_leave_req, MyName, ClientPid},
 			ok;
+
 		true ->
 			ServerPid ! {send, MyName, Text},
 			process_commands(ServerPid, MyName, ClientPid)
 	end.
-
-	
