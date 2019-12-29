@@ -11,7 +11,8 @@ start() ->
 
 start(BootServer) ->
 	ServerPid = spawn(server2, init_server, [BootServer]),
-	register(myserver, ServerPid).
+	register(myserver, ServerPid),
+	process_commands(ServerPid).
 
 init_server() ->
 	process_requests([], [self()]).
@@ -42,8 +43,17 @@ process_requests(Clients, Servers) ->
 			broadcast_server(Servers, {message, Name, Text}),
 			process_requests(Clients, Servers);
 
-		print_users ->
-			print_name(Clients),
+
+		{request_list_users, From} ->
+			broadcast_server(Servers, {send_list_of_users, From}),
+			process_requests(Clients, Servers);
+
+		{send_list_of_users, From} ->
+			From ! {print_users, Clients},
+			process_requests(Clients, Servers);
+
+		{print_users, List_of_clients} ->
+			print_name(List_of_clients),
 			process_requests(Clients, Servers);
 
 		remove_users ->
@@ -62,7 +72,7 @@ process_requests(Clients, Servers) ->
 		{server_join_req, From} ->
 			io:format("New server joins!~n"),
 			NewServers = [From|Servers],
-			broadcast(NewServers, {update_servers, NewServers}),
+			broadcast_server(NewServers, {update_servers, NewServers}),
 			process_requests(Clients, NewServers);
 		% Server list update
 		{update_servers, NewServers} ->
@@ -95,20 +105,22 @@ process_commands(ServerPid) ->
 	%% Read from the standard input and send to server
 	Text = io:get_line("-> "),
     if Text == "List_clients\n" ->
-        ServerPid ! print_users;
+        ServerPid ! {request_list_users, ServerPid},
+        process_commands(ServerPid);
 
        Text == "Remove_all\n" ->
        	io:format("Removing clients...~n"),
-       	ServerPid ! remove_users;
+       	ServerPid ! remove_users,
+       	process_commands(ServerPid);
        
        Text == "exit\n" ->
        	io:format("Exiting...~n"),
        	ServerPid ! disconnect;
        
        true ->
-        io:format("Este comando no existe, Introduce 'help' para ver las opciones.~n")
-    end,
-	process_commands(ServerPid).
+        io:format("Este comando no existe, Introduce 'help' para ver las opciones.~n"),
+        process_commands(ServerPid)
+    end.
 	
 
 print_name(Clients) ->
