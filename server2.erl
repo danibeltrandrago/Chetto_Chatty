@@ -1,5 +1,6 @@
 -module(server2).
 
+-import(proplists,[get_value/2]).
 %% Exported Functions
 -export([start/0, start/1, init_server/0, init_server/1, process_requests/2]).
 
@@ -27,13 +28,13 @@ process_requests(Clients, Servers) ->
 		% A new client joins
 		{client_join_req, Name, From} ->
 			io:format("[JOIN] ~s~n", [Name]),
-			NewClients = [{From, Name}|Clients],
+			NewClients = [{Name, From}|Clients],
 			broadcast_server(Servers, {join, Name}),
 			process_requests(NewClients, Servers);
 		% A client leaves
 		{client_leave_req, Name, From} ->
 			io:format("[EXIT] ~s~n", [Name]),
-			NewClients = lists:delete({From, Name}, Clients),
+			NewClients = lists:delete({Name, From}, Clients),
 			broadcast_server(Servers, {leave, Name}),
 			From ! exit,
 			process_requests(NewClients, Servers);
@@ -41,6 +42,17 @@ process_requests(Clients, Servers) ->
 		{send, Name, Text} ->
 			io:format("~p: ~s", [Name, Text]),
 			broadcast_server(Servers, {message, Name, Text}),
+			process_requests(Clients, Servers);
+		{private_send, From, FromPID, To, Text} ->
+			Aux = get_value(To, Clients),
+			if Aux =:= undefined->
+					io:format("~s", [To]),
+					FromPID ! {message_private, "Server", "Aquest usuari no existeix\n"};
+				true->
+					io:format("~p: ~s", [From, Text]),
+				    Aux ! {message_private, From, Text},
+				    FromPID ! {message_private, From, Text}
+			end,
 			process_requests(Clients, Servers);
 
 
@@ -91,7 +103,7 @@ process_requests(Clients, Servers) ->
 %% Local Functions
 broadcast(PeerList, Message) ->
 	Fun = fun(Peer) -> 
-		X = element(1, Peer),
+		X = element(2, Peer),
 		X ! Message 
 	end,
 	lists:map(Fun, PeerList).
@@ -125,7 +137,7 @@ process_commands(ServerPid) ->
 
 print_name(Clients) ->
 	P = fun(Client) ->
-			Name = element(2, Client),
+			Name = element(1, Client),
 			io:format("~s~n", [Name])
 		end,
 	lists:map(P, Clients).
@@ -133,7 +145,7 @@ print_name(Clients) ->
 remove_user(Clients) ->
 	io:format("Removing clients...~n"),
 	P = fun(Client) ->
-			Direction = element(1, Client),
+			Direction = element(2, Client),
 			Direction ! exit
 		end,
 	lists:map(P, Clients).
