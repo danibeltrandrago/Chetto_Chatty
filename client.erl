@@ -23,9 +23,12 @@ process_requests(MyName) ->
 			process_requests(MyName);
 		{leave, Name} ->
 			io:format("[EXIT] ~s left~n", [Name]),
-			process_requests();
+			process_requests(MyName);
 		{message, Name, Text} ->
 			io:format("[~s] ~s", [Name, Text]),
+			process_requests(MyName);
+		{message_private, Name, Text} ->
+			io:format("<~s> ~s", [Name, Text]),
 			process_requests(MyName);
 
 
@@ -50,7 +53,12 @@ process_commands(ServerPid, MyName, ClientPid) ->
 	if  Text == "exit\n" ->
 			ServerPid ! {client_leave_req, MyName, ClientPid},
 			ok;
-
+		Text == "private\n" ->
+			Aux = io:get_line("Nombre del usuario: "),
+			Name = re:replace(Aux, "\\s+", "", [global,{return,list}]),
+			Message = io:get_line("Mensaje privado\n-> "),
+			ServerPid ! {private_send, MyName, ClientPid, Name, Message},
+			process_commands(ServerPid, MyName, ClientPid);
 		true ->
 			ServerPid ! {send, MyName, Text},
 			process_commands(ServerPid, MyName, ClientPid)
