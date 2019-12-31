@@ -2,7 +2,7 @@
 
 -import(proplists,[get_value/2]).
 %% Exported Functions
--export([start/0, start/1, init_server/0, init_server/1, process_requests/2]).
+-export([start/0, start/1, init_server/0, init_server/1, process_requests/3]).
 
 %% API Functions
 start() ->
@@ -16,62 +16,102 @@ start(BootServer) ->
 	process_commands(ServerPid).
 
 init_server() ->
-	process_requests([], [self()]).
+	process_requests([], [self()], [{"Global", []}]).
 
 init_server(BootServer) ->
 	BootServer ! {server_join_req, self()},
-	process_requests([], []).
+	process_requests([], [], []).
 
-process_requests(Clients, Servers) ->
+process_requests(Clients, Servers, Groups) ->
 	receive
 		%% Messages between client and server
 		% A new client joins
 		{client_join_req, Name, From} ->
 			io:format("[JOIN] ~s~n", [Name]),
 			NewClients = [{Name, From}|Clients],
+
+			Clients_in_group = get_value("Global", Groups),
+			NewClients_in_group = [{Name, From}|Clients_in_group],
+			NewGroups = lists:keyreplace("Global", 1, Groups, {"Global", NewClients_in_group}),
+
 			broadcast_server(Servers, {join, Name}),
-			process_requests(NewClients, Servers);
+			broadcast_server(Servers, {set_groups, NewGroups}),
+			process_requests(NewClients, Servers, NewGroups);
 		% A client leaves
-		{client_leave_req, Name, From} ->
+		{client_leave_req, Name, From, Group} ->
 			io:format("[EXIT] ~s~n", [Name]),
 			NewClients = lists:delete({Name, From}, Clients),
+
+			Clients_in_group = get_value(Group, Groups),
+			NewClients_in_group = lists:delete({Name, From}, Clients_in_group),
+			NewGroups = lists:keyreplace(Group, 1, Groups, {Group, NewClients_in_group}),
+
 			broadcast_server(Servers, {leave, Name}),
+			broadcast_server(Servers, {set_groups, NewGroups}),
 			From ! exit,
-			process_requests(NewClients, Servers);
+			process_requests(NewClients, Servers, NewGroups);
+
+		{change_group, Name, From,OldGroup, NewGroup} ->
+			Aux = get_value(NewGroup, Groups),
+			if Aux =:= undefined->
+					io:format("Creant nou grup\n"),
+					NewGroups = [{NewGroup, [{Name, From}]}|Groups];
+
+				true->
+					NewClients_in_group = [{Name, From}|Aux],
+					NewGroups = lists:keyreplace(NewGroup, 1, Groups, {NewGroup, NewClients_in_group})
+
+			end,
+
+			Clients_in_group = get_value(OldGroup, NewGroups),
+			NewClients = lists:delete({Name, From}, Clients_in_group),
+			NewGroups2 = lists:keyreplace(OldGroup, 1, NewGroups, {OldGroup, NewClients}),
+
+			broadcast_server(Servers, {set_groups, NewGroups2}),
+			process_requests(Clients, Servers, NewGroups2);
 		% A client sends a message
 		{send, Name, Text} ->
 			io:format("~p: ~s", [Name, Text]),
 			broadcast_server(Servers, {message, Name, Text}),
-			process_requests(Clients, Servers);
+			process_requests(Clients, Servers, Groups);
+		% A client sends a message
+		{send_group, Name, Group, Text} ->
+			io:format("~p in group ~s: ~s", [Name, Group, Text]),
+			Clients_in_group = get_value(Group, Groups),
+			broadcast(Clients_in_group, {message_group, Name, Text}),
+			process_requests(Clients, Servers, Groups);
+		% El cliente envia un mensaje privado
+		{set_private_send, From, FromPID, To, Text} ->
+			io:format("<~p>: ~s", [From, Text]),
+			broadcast_server(Servers, {private_send, From, FromPID, To, Text}),
+			process_requests(Clients, Servers, Groups);
+		% Cada uno de los servidores mira si existe ese cliente i lo envia exclusivamente a el
 		{private_send, From, FromPID, To, Text} ->
 			Aux = get_value(To, Clients),
 			if Aux =:= undefined->
-					io:format("~s", [To]),
-					FromPID ! {message_private, "Server", "Aquest usuari no existeix\n"};
+					io:format("No tengo este usuario ~s~n", [To]);
 				true->
-					io:format("~p: ~s", [From, Text]),
 				    Aux ! {message_private, From, Text},
 				    FromPID ! {message_private, From, Text}
 			end,
-			process_requests(Clients, Servers);
-
+			process_requests(Clients, Servers, Groups);
 
 		{request_list_users, From} ->
 			broadcast_server(Servers, {send_list_of_users, From}),
-			process_requests(Clients, Servers);
+			process_requests(Clients, Servers, Groups);
 
 		{send_list_of_users, From} ->
 			From ! {print_users, Clients},
-			process_requests(Clients, Servers);
+			process_requests(Clients, Servers, Groups);
 
 		{print_users, List_of_clients} ->
 			print_name(List_of_clients),
-			process_requests(Clients, Servers);
+			process_requests(Clients, Servers, Groups);
 
 		remove_users ->
 			remove_user(Clients),
 			io:format("All Clients removed~n"),
-			process_requests([], Servers);
+			process_requests([], Servers, Groups);
 
 		%% Messages between servers
 		% Stop the server
@@ -85,18 +125,23 @@ process_requests(Clients, Servers) ->
 		% Server joins
 		{server_join_req, From} ->
 			io:format("New server joins!~n"),
+			From ! {set_groups, Groups},
 			NewServers = [From|Servers],
 			broadcast_server(NewServers, {update_servers, NewServers}),
-			process_requests(Clients, NewServers);
+			process_requests(Clients, NewServers, Groups);
 		% Server list update
 		{update_servers, NewServers} ->
 			io:format("Server list update! ~w~n", [NewServers]),
-			process_requests(Clients, NewServers);
+			process_requests(Clients, NewServers, Groups);
+		% Server list update
+		{set_groups, NewGroup} ->
+			io:format("Group list update!~n"),
+			process_requests(Clients, Servers, NewGroup);
 		% Other messages are relayed to clients
 		RelayMessage ->
 			io:format("Relaying message...~n"),
 			broadcast(Clients, RelayMessage),
-			process_requests(Clients, Servers)
+			process_requests(Clients, Servers, Groups)
 
 	end.
 
@@ -139,6 +184,12 @@ print_name(Clients) ->
 	P = fun(Client) ->
 			Name = element(1, Client),
 			io:format("~s~n", [Name])
+		end,
+	lists:map(P, Clients).
+
+print_list(Clients) ->
+	P = fun(Client) ->
+			io:format("~s~n", [Client])
 		end,
 	lists:map(P, Clients).
 
