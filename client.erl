@@ -115,7 +115,13 @@ settings(ServerPid, MyName, ClientPid, Group, Content) ->
 		 io:format("Comandos:\n
  	exit -> Permite salir de opciones y preferencias\n
 	help -> Imprime por pantalla la ayuda\n
- 	changeName -> Permite cambiar el nombre de usuario\n\n"),
+ 	changeName: Nos permite cambiar de nombre\n
+	changeMyColor: Nos permite cambiar el color que aparecen nuestro nombre de usuario al enviar un mensaje.\n
+	changeServerColor: Permite cambiar el color del nombre del Servidor.\n
+	changeWarningColor: Permite cambiar el color de los mensajes de emergencia.\n
+	changeInfoColor: Permite cambiar el color de los mensajes informativos.\n
+	changeMyMessageColor: Permite cambiar el color del mensaje que nosotros hemos enviado\n
+	changeMessageColor: Permite cambiar el color del mensaje recibido.\n\n"),
 		 settings(ServerPid, MyName, ClientPid, Group, Content);
 
 		Text == "changeName\n" ->
@@ -124,49 +130,49 @@ settings(ServerPid, MyName, ClientPid, Group, Content) ->
 
 		Text == "changeMyColor\n" ->
 			 io:format("Introduzca el nuevo color en formato RGB: "),
-			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R: "))),
-			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G: "))),
-			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B: "))),
+			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R (Enteros del 0 al 5): "))),
+			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G (Enteros del 0 al 5): "))),
+			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B (Enteros del 0 al 5): "))),
 			 NewColor = [R, G, B],
 			 changeMyColor(ServerPid, NewColor, ?MyNameColor, ClientPid, Content, Group);
 		 
  		Text == "changeWarningColor\n" ->
 			 io:format("Introduzca el nuevo color en formato RGB: "),
-			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R: "))),
-			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G: "))),
-			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B: "))),
+			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R (Enteros del 0 al 5): "))),
+			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G (Enteros del 0 al 5): "))),
+			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B (Enteros del 0 al 5): "))),
 			 NewColor = [R, G, B],
 			 changeWarningColor(ServerPid, NewColor, ?WarningColor, ClientPid, Content, Group);
 		
 		Text == "changeServerColor\n" ->
 			 io:format("Introduzca el nuevo color en formato RGB:\n"),
-			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R: "))),
-			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G: "))),
-			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B: "))),
+			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R (Enteros del 0 al 5): "))),
+			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G (Enteros del 0 al 5): "))),
+			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B (Enteros del 0 al 5): "))),
 			 NewColor = [R, G, B],
 			 changeServerColor(ServerPid, NewColor, ?ServerNameColor, ClientPid, Content, Group);
 
 		 Text == "changeInfoColor\n" ->
 			 io:format("Introduzca el nuevo color en formato RGB:\n"),
-			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R: "))),
-			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G: "))),
-			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B: "))),
+			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R (Enteros del 0 al 5): "))),
+			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G (Enteros del 0 al 5): "))),
+			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B (Enteros del 0 al 5): "))),
 			 NewColor = [R, G, B],
 			 changeInfoColor(ServerPid, NewColor, ?ServerNameColor, ClientPid, Content, Group);
 
 		 Text == "changeMyMessageColor\n" ->
 			 io:format("Introduzca el nuevo color en formato RGB:\n"),
-			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R: "))),
-			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G: "))),
-			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B: "))),
+			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R (Enteros del 0 al 5): "))),
+			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G (Enteros del 0 al 5): "))),
+			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B (Enteros del 0 al 5): "))),
 			 NewColor = [R, G, B],
 			 changeMyMessageColor(ServerPid, NewColor, ?MyMessageColor, ClientPid, Content, Group);
 
 		 Text == "changeMessageColor\n" ->
 			 io:format("Introduzca el nuevo color en formato RGB:\n"),
-			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R: "))),
-			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G: "))),
-			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B: "))),
+			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R (Enteros del 0 al 5): "))),
+			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G (Enteros del 0 al 5): "))),
+			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B (Enteros del 0 al 5): "))),
 			 NewColor = [R, G, B],
 			 changeMessageColor(ServerPid, NewColor, ?MessageColor, ClientPid, Content, Group);
 
