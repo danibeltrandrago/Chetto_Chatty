@@ -96,7 +96,10 @@ process_requests(Clients, Servers, Groups) ->
 			end,
 			process_requests(Clients, Servers, Groups);
 
+
+%% Messages between servers
 		{request_list_users, From} ->
+			io:format("--- List Of Clients ---~n"),
 			broadcast_server(Servers, {send_list_of_users, From}),
 			process_requests(Clients, Servers, Groups);
 
@@ -108,12 +111,30 @@ process_requests(Clients, Servers, Groups) ->
 			print_name(List_of_clients),
 			process_requests(Clients, Servers, Groups);
 
-		remove_users ->
+		print_groups ->
+			print_groups(Groups),
+			io:format("~n"),
+			process_requests(Clients, Servers, Groups);
+
+		remove_all_users ->
 			remove_user(Clients),
 			io:format("All Clients removed~n"),
 			process_requests([], Servers, Groups);
 
-		%% Messages between servers
+		{remove_user_req, Client} ->
+			broadcast_server(Servers, {remove_user, Client}),
+			process_requests(Clients, Servers, Groups);
+		{remove_user, Client} ->
+			Aux = get_value(Client, Clients),
+			if Aux =:= undefined->
+					io:format("El usuario ~s no esta alojado en este servidor~n", [Client]);
+				true->
+				    Aux ! exit,
+					io:format("Cliente Expulsado~n")
+			end,
+			
+			process_requests(Clients, Servers, Groups);
+
 		% Stop the server
 		disconnect ->
 			NewServers = lists:delete(self(), Servers),
@@ -167,13 +188,32 @@ process_commands(ServerPid) ->
         ServerPid ! {request_list_users, ServerPid},
         process_commands(ServerPid);
 
-       Text == "Remove_clients\n" ->
-       	ServerPid ! remove_users,
+       Text == "List_groups\n" ->
+        ServerPid ! print_groups,
+        process_commands(ServerPid);
+
+       Text == "Remove_all_clients\n" ->
+       	ServerPid ! remove_all_users,
        	process_commands(ServerPid);
-       
-       Text == "exit\n" ->
-       	ServerPid ! disconnect;
-       
+
+       Text == "Remove_client\n" ->
+       	Aux = io:get_line("Introduce el nombre del cliente-> "),
+       	Name = re:replace(Aux, "\\s+", "", [global,{return,list}]),
+       	ServerPid ! {remove_user, Name},
+       	process_commands(ServerPid);
+
+       	Text == "help\n" ->
+       		io:format("Lista de comandas disponibles:~n"),
+       		io:format("'List_clients' -> Devuelve una lista de todos los clientes distribuidos entre los diferentes servidores.~n"),
+       		io:format("'List_groups' -> Devuelve una lista de todos los grupos creados.~n"),
+       		io:format("'Remove_all_clients' -> Echa a todos los clientes alojados en el servidor.~n"),
+       		io:format("'Remove_client' -> Petición a todos los servidores para eliminar a un cliente en especifico.~n"),
+       		io:format("'exit' -> Redirecciona a todos los clientes a otro servidor disponible i desconecta el servidor actual.~n"),
+        	process_commands(ServerPid);
+
+        Text == "exit\n" ->
+       		ServerPid ! disconnect;
+
        true ->
         io:format("Este comando no existe, Introduce 'help' para ver las opciones.~n"),
         process_commands(ServerPid)
@@ -187,11 +227,14 @@ print_name(Clients) ->
 		end,
 	lists:map(P, Clients).
 
-print_list(Clients) ->
-	P = fun(Client) ->
-			io:format("~s~n", [Client])
+print_groups(Groups) ->
+	P = fun(Grpup) ->
+			Name = element(1, Grpup),
+			Clients = element(2, Grpup),
+			io:format("\n--- ~s ---  ~w clients ~n", [Name, length(Clients)]),
+			print_name(Clients)
 		end,
-	lists:map(P, Clients).
+	lists:map(P, Groups).
 
 remove_user(Clients) ->
 	io:format("Removing clients...~n"),

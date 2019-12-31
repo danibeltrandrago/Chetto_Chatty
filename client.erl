@@ -75,6 +75,14 @@ process_commands(ServerPid, MyName, ClientPid, Group) ->
 			ServerPid ! {change_group, MyName, ClientPid, Group, NameGroup},
 			process_commands(ServerPid, MyName, ClientPid, NameGroup);
 
+		Text == "help\n" ->
+       		io:format("Lista de comandas disponibles:~n"),
+       		io:format("'All' -> Envia un mensaje a todos los clientes independientemente de en que grupo esten. ~n"),
+       		io:format("'private' -> Envia un mensaje a un usuario en concreto.~n"),
+       		io:format("'Change_group' -> Cambiar de grupo (se pueden crear grupos nuevos).~n"),
+       		io:format("'exit' -> Desconnexión del servidor.~n"),
+        	process_commands(ServerPid, MyName, ClientPid, Group);
+
 		true ->
 			ServerPid ! {send_group, MyName, Group, Text},
 			process_commands(ServerPid, MyName, ClientPid, Group)
