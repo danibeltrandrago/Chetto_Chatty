@@ -45,15 +45,26 @@ client:start({myserver, 'server_node@127.0.0.1'}, "Name").
 ```
 
 ## Funcionalidades del servidor
-##### - List_clients
+```List_clients
+```
 Imprime una lista de todos los clienes conectados entre los distintos servidores.
-##### - List_groups
+
+```List_groups
+```
 imprime todos los grupos creados y cada uno de los usuarios que hay dentro de ellos.
-##### - Remove_all_clients
+
+```Remove_all_clients
+```
 Elimina todos los clientes del servidor en concreto.
-##### - Remove_client
+
+
+```Remove_client
+```
 Elimina a un cliente en concreto.
-##### - exit
+
+
+```exit
+```
 Redirige a los usuarios a otro servidor disponible.
 
 ## Funcionalidades del cliente
