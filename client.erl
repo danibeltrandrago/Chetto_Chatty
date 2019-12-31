@@ -2,13 +2,15 @@
 
 -import(lists,[last/1]).
 
+-include("settings.hrl").
+
 %% Exported Functions
--export([start/2, init_client/2]).
+-export([start/1, init_client/2]).
 
 %% API Functions
-start(ServerPid, MyName) ->
-	ClientPid = spawn(client, init_client, [ServerPid, MyName]),
-	process_commands(ServerPid, MyName, ClientPid, "Global").
+start(ServerPid) ->
+	ClientPid = spawn(client, init_client, [ServerPid, ?MyName]),
+	process_commands(ServerPid, ?MyName, ClientPid, "Global").
 
 init_client(ServerPid, MyName) ->
 	ServerPid ! {client_join_req, MyName, self()},
@@ -19,17 +21,25 @@ init_client(ServerPid, MyName) ->
 process_requests(MyName) ->
 	receive
 		{join, Name} ->
-			io:format("[JOIN] ~s joined~n", [Name]),
+			io:format("~s ~s ~s~n", [color:rgb(?InfoMessageColor,"[JOIN]"),color:rgb(?InfoMessageColor, Name), color:rgb(?InfoMessageColor,"joined")]), 
 			process_requests(MyName);
 		{leave, Name} ->
-			io:format("[EXIT] ~s left~n", [Name]),
+			io:format("~s ~s ~s~n", [color:rgb(?InfoMessageColor,"[EXIT]"),color:rgb(?InfoMessageColor, Name), color:rgb(?InfoMessageColor,"exited")]), 
 			process_requests(MyName);
 		{message, Name, Text} ->
-			io:format("[~s] ~s", [Name, Text]),
+			if Name == ?MyName ->
+				 io:format("[~s] ~s", [color:rgb( ?MyNameColor, Name), color:rgb(?MyMessageColor,Text)]);
+			 Name == "Server" ->
+			 	 io:format("[~s] ~s", [color:rgb( ?ServerNameColor, Name), color:rgb(?InfoMessageColor,Text)]);
+			 true ->
+			 	 io:format("[~s] ~s", [Name, color:rgb(?MessageColor,Text)])
+		 	 end,
 			process_requests(MyName);
+
 		{message_private, Name, Text} ->
 			io:format("<~s> ~s", [Name, Text]),
 			process_requests(MyName);
+
 		{message_group, Name, Text} ->
 			io:format("(~s) ~s", [Name, Text]),
 			process_requests(MyName);
@@ -37,15 +47,15 @@ process_requests(MyName) ->
 
 		{change_server, Servers} ->
 			if length(Servers) > 0 ->
-					io:format("El servidor se ha desconectado.\nReconectando con otro servidor...\n"),
+					io:format("~s",[color:rgb(?InfoMessageColor,"El servidor se ha desconectado.\nReconectando con otro servidor...\n")]),
 					NewServer = last(Servers),
-					start(NewServer, MyName),
+					start(NewServer),
 					ok;
 				true ->
-					io:format("El servidor se ha desconectado y no existen mas servidores.\nEscribe 'exit' para salir.\n")
+					io:format("~s",[color:rgb(?WarningColor,"El servidor se ha desconectado y no existen mas servidores.\nEscribe 'exit' para salir.\n")])
 			end;
 		exit ->
-			io:format("El servidor te ha expulsado del canal, Introduce 'exit' para salir.\n"),
+			io:format("~s", [color:rgb(?WarningColor, "El servidor te ha expulsado del canal, Introduce 'exit' para salir.\n")]),
 			ok
 	end.
 
@@ -56,6 +66,11 @@ process_commands(ServerPid, MyName, ClientPid, Group) ->
 	if  Text == "exit\n" ->
 			ServerPid ! {client_leave_req, MyName, ClientPid, Group},
 			ok;
+
+		Text == "settings\n" ->
+			io:format("Bienvenido al apartado opciones y preferencias, si quiere conocer las comandas disponibles, escriba 'help'\n"),
+			{ok, File} = file:read_file("settings.hrl"),
+			settings(ServerPid, MyName, ClientPid, Group, File);
 
 		Text == "All\n" ->
 			Message = io:get_line("Mensaje general\n-> "),
@@ -76,14 +91,133 @@ process_commands(ServerPid, MyName, ClientPid, Group) ->
 			process_commands(ServerPid, MyName, ClientPid, NameGroup);
 
 		Text == "help\n" ->
-       		io:format("Lista de comandas disponibles:~n"),
-       		io:format("'All' -> Envia un mensaje a todos los clientes independientemente de en que grupo esten. ~n"),
-       		io:format("'private' -> Envia un mensaje a un usuario en concreto.~n"),
-       		io:format("'Change_group' -> Cambiar de grupo (se pueden crear grupos nuevos).~n"),
-       		io:format("'exit' -> Desconnexión del servidor.~n"),
+       		io:format("~s",[color:rgb(?InfoMessageColor,"Lista de comandas disponibles:\n")]),
+       		io:format("~s",[color:rgb(?InfoMessageColor,"'All' -> Envia un mensaje a todos los clientes independientemente de en que grupo esten. \n")]),
+       		io:format("~s",[color:rgb(?InfoMessageColor,"'private' -> Envia un mensaje a un usuario en concreto.\n")]),
+       		io:format("~s",[color:rgb(?InfoMessageColor,"'Change_group' -> Cambiar de grupo (se pueden crear grupos nuevos).\n")]),
+       		io:format("~s",[color:rgb(?InfoMessageColor,"'exit' -> Desconnexión del servidor.\n")]),
+       		io:format("~s",[color:rgb(?InfoMessageColor,"'settings' -> Abre el editor de opciones y preferencias\n")]),
         	process_commands(ServerPid, MyName, ClientPid, Group);
 
 		true ->
-			ServerPid ! {send_group, MyName, Group, Text},
+			ServerPid ! {send, MyName, Text},
 			process_commands(ServerPid, MyName, ClientPid, Group)
 	end.
+
+settings(ServerPid, MyName, ClientPid, Group, Content) ->
+	Text = io:get_line("Opciones y preferencias: "),
+	if Text == "exit\n" ->
+		 io:format("Para actualizar los cambios debera recargar el modulo y reiniciar el cliente\n"),
+		 file:write_file("settings.hrl", Content),
+	     process_commands(ServerPid, MyName, ClientPid, Group);
+
+		Text == "help\n" ->	
+		 io:format("Comandos:\n
+ 	exit -> Permite salir de opciones y preferencias\n
+	help -> Imprime por pantalla la ayuda\n
+ 	changeName -> Permite cambiar el nombre de usuario\n\n"),
+		 settings(ServerPid, MyName, ClientPid, Group, Content);
+
+		Text == "changeName\n" ->
+			 NewName = string:strip(io:get_line("Nombre nuevo: "), right, $\n),
+			 changeName(ServerPid, NewName, MyName, ClientPid, Content, Group);
+
+		Text == "changeMyColor\n" ->
+			 io:format("Introduzca el nuevo color en formato RGB: "),
+			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R: "))),
+			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G: "))),
+			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B: "))),
+			 NewColor = [R, G, B],
+			 changeMyColor(ServerPid, NewColor, ?MyNameColor, ClientPid, Content, Group);
+		 
+ 		Text == "changeWarningColor\n" ->
+			 io:format("Introduzca el nuevo color en formato RGB: "),
+			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R: "))),
+			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G: "))),
+			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B: "))),
+			 NewColor = [R, G, B],
+			 changeWarningColor(ServerPid, NewColor, ?WarningColor, ClientPid, Content, Group);
+		
+		Text == "changeServerColor\n" ->
+			 io:format("Introduzca el nuevo color en formato RGB:\n"),
+			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R: "))),
+			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G: "))),
+			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B: "))),
+			 NewColor = [R, G, B],
+			 changeServerColor(ServerPid, NewColor, ?ServerNameColor, ClientPid, Content, Group);
+
+		 Text == "changeInfoColor\n" ->
+			 io:format("Introduzca el nuevo color en formato RGB:\n"),
+			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R: "))),
+			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G: "))),
+			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B: "))),
+			 NewColor = [R, G, B],
+			 changeInfoColor(ServerPid, NewColor, ?ServerNameColor, ClientPid, Content, Group);
+
+		 Text == "changeMyMessageColor\n" ->
+			 io:format("Introduzca el nuevo color en formato RGB:\n"),
+			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R: "))),
+			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G: "))),
+			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B: "))),
+			 NewColor = [R, G, B],
+			 changeMyMessageColor(ServerPid, NewColor, ?MyMessageColor, ClientPid, Content, Group);
+
+		 Text == "changeMessageColor\n" ->
+			 io:format("Introduzca el nuevo color en formato RGB:\n"),
+			 {R, Aux} = string:to_integer(string:chomp(io:get_line("R: "))),
+			 {G, Aux} = string:to_integer(string:chomp(io:get_line("G: "))),
+			 {B, Aux} = string:to_integer(string:chomp(io:get_line("B: "))),
+			 NewColor = [R, G, B],
+			 changeMessageColor(ServerPid, NewColor, ?MessageColor, ClientPid, Content, Group);
+
+		true ->
+			io:format("~s~n",[color:rgb(?WarningColor,"No he entendido la comanda, escriba help para sacar la ayuda o vuelva a probar")]),
+	 		settings(ServerPid, MyName, ClientPid, Group, Content)
+	 end.
+
+changeName(ServerPid, NewName, OldName, ClientPid, Content, Group) ->
+	io:format("Su nombre ~s ha sido cambiado por ~s~n", [ color:true("00FF00", OldName), color:true("00FF00", NewName)]),
+	NewLine = ["-define ( MyName, << ",34, NewName, 34," >> ).\n"],
+	OldLine = ["-define ( MyName, << ",34, OldName, 34," >> ).\n"],
+	actualizeContent(Content, NewLine, OldLine, ServerPid, ClientPid, Group).
+
+changeMyColor(ServerPid, NewColor, OldColor, ClientPid, Content, Group) ->
+	io:format("El color ha sido cambiado por ~s~n", [color:rgb(NewColor, "este")]),
+	NewLine = ["-define ( MyNameColor, ",lists:flatten(io_lib:format("~p", [NewColor]))," ).\n"],
+	OldLine = ["-define ( MyNameColor, ",lists:flatten(io_lib:format("~p", [OldColor]))," ).\n"],
+	actualizeContent(Content, NewLine, OldLine, ServerPid, ClientPid, Group).
+
+changeWarningColor(ServerPid, NewColor, OldColor, ClientPid, Content, Group) ->
+	io:format("El color ha sido cambiado por ~s~n", [color:rgb(NewColor, "este")]),
+	NewLine = ["-define ( WarningColor, ",lists:flatten(io_lib:format("~p", [NewColor]))," ).\n"],
+	OldLine = ["-define ( WarningColor, ",lists:flatten(io_lib:format("~p", [OldColor]))," ).\n"],
+	actualizeContent(Content, NewLine, OldLine, ServerPid, ClientPid, Group).
+
+changeServerColor(ServerPid, NewColor, OldColor, ClientPid, Content, Group) ->
+	io:format("El color ha sido cambiado por ~s~n", [color:rgb(NewColor, "este")]),
+	NewLine = ["-define ( ServerNameColor, ",lists:flatten(io_lib:format("~p", [NewColor]))," ).\n"],
+	OldLine = ["-define ( ServerNameColor, ",lists:flatten(io_lib:format("~p", [OldColor]))," ).\n"],
+	actualizeContent(Content, NewLine, OldLine, ServerPid, ClientPid, Group).
+
+changeInfoColor(ServerPid, NewColor, OldColor, ClientPid, Content, Group) ->
+	io:format("El color ha sido cambiado por ~s~n", [color:rgb(NewColor, "este")]),
+	NewLine = ["-define ( InfoMessageColor, ",lists:flatten(io_lib:format("~p", [NewColor]))," ).\n"],
+	OldLine = ["-define ( InfoMessageColor, ",lists:flatten(io_lib:format("~p", [OldColor]))," ).\n"],
+	actualizeContent(Content, NewLine, OldLine, ServerPid, ClientPid, Group).
+
+changeMyMessageColor(ServerPid, NewColor, OldColor, ClientPid, Content, Group) ->
+	io:format("El color ha sido cambiado por ~s~n", [color:rgb(NewColor, "este")]),
+	NewLine = ["-define ( MyMessageColor, ",lists:flatten(io_lib:format("~p", [NewColor]))," ).\n"],
+	OldLine = ["-define ( MyMessageColor, ",lists:flatten(io_lib:format("~p", [OldColor]))," ).\n"],
+	actualizeContent(Content, NewLine, OldLine, ServerPid, ClientPid, Group).
+
+changeMessageColor(ServerPid, NewColor, OldColor, ClientPid, Content, Group) ->
+	io:format("El color ha sido cambiado por ~s~n", [color:rgb(NewColor, "este")]),
+	NewLine = ["-define ( MessageColor, ",lists:flatten(io_lib:format("~p", [NewColor]))," ).\n"],
+	OldLine = ["-define ( MessageColor, ",lists:flatten(io_lib:format("~p", [OldColor]))," ).\n"],
+	actualizeContent(Content, NewLine, OldLine, ServerPid, ClientPid, Group).
+
+
+actualizeContent(Content, NewLine, OldLine, ServerPid, ClientPid, Group) ->
+	ContentList = string:replace(Content, OldLine, NewLine, all),
+	settings(ServerPid, ?MyName, ClientPid, Group ,ContentList).

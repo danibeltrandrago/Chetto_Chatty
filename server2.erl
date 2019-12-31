@@ -158,6 +158,13 @@ process_requests(Clients, Servers, Groups) ->
 		{set_groups, NewGroup} ->
 			io:format("Group list update!~n"),
 			process_requests(Clients, Servers, NewGroup);
+
+		{client_change_name, OldName, NewName, From} ->
+			AuxList = lists:delete({From, OldName}, Clients),
+			NewClients = [{From, NewName} | AuxList],
+			io:format("[~s]: ~s has changed the name to ~s~n", [ color:true("800080", "Server"), color:true("00FF00", OldName), color:true("00FF00", NewName)]),
+			process_requests(Clients, NewClients, Servers);
+			
 		% Other messages are relayed to clients
 		RelayMessage ->
 			io:format("Relaying message...~n"),
