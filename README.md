@@ -3,13 +3,13 @@
 # Introducción para SODX
 ## Projecte format per Toni Cifré, Daniel Beltrán i Jaume Florit. 
 
-# En aquesta pràctica el que inicialment havíem plantetjat és realitzar una expansió del Laboratori 1 (chat). Alguns dels següents punts eren les idees inicials que teniem per implementar, tot i que, a dia d'avui, algunes d'elles no s'han implementat i s'han ficat d'altres.
+## En aquesta pràctica el que inicialment havíem plantetjat és realitzar una expansió del Laboratori 1 (chat). Alguns dels següents punts eren les idees inicials que teniem per implementar, tot i que, a dia d'avui, algunes d'elles no s'han implementat i s'han ficat d'altres.
 
   - que els usuaris puguin assignar-se un color
   - creació i administració de canals del chat
   - eliminació de paraules que no sigui apropiades pel chat.
 
-# Aquests son alguns dels exemples que havíem plantejat amb anterioritat. Els punts finals que implementa el chat són:
+## Aquests son alguns dels exemples que havíem plantejat amb anterioritat. Els punts finals que implementa el chat són:
   - Assignació de colors als usuaris
   - Llistats de clients
   - Eliminar un client concret o eliminar tot el seu conjunt
