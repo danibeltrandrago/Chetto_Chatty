@@ -1,6 +1,6 @@
 # Chetto_Chatty
 
-## Utilicación
+## utilización
 
 Iniliciación de un nodo de erlang:
 > erl -name node@127.0.0.1 -setcookie secret
