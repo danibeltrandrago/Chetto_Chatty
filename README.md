@@ -1,22 +1,26 @@
 # Chetto_Chatty
 
-# Introducción para SODX
-## Projecte format per Toni Cifré, Daniel Beltrán i Jaume Florit. 
+## Introducción para SODX
+### Projecte format per Toni Cifré, Daniel Beltrán i Jaume Florit. 
 
-### En aquesta pràctica el que inicialment havíem plantetjat és realitzar una expansió del Laboratori 1 (chat). Alguns dels següents punts eren les idees inicials que teniem per implementar, tot i que, a dia d'avui, algunes d'elles no s'han implementat i s'han ficat d'altres.
+#### En aquesta pràctica el que inicialment havíem plantetjat és realitzar una expansió del Laboratori 1 (chat). Alguns dels següents punts eren les idees inicials que teniem per implementar, tot i que, a dia d'avui, algunes d'elles no s'han implementat i s'han ficat d'altres.
 
   - que els usuaris puguin assignar-se un color
   - creació i administració de canals del chat
   - eliminació de paraules que no sigui apropiades pel chat.
 
-### Aquests son alguns dels exemples que havíem plantejat amb anterioritat. Els punts finals que implementa el chat són:
-  - Assignació de colors als usuaris
+#### Aquests son alguns dels exemples que havíem plantejat amb anterioritat. Els punts finals que implementa el chat són:
+  - Manipulació d'opcions d'usuari (Les dades es guarden en un fitxer extern que permet guardar la configuració).
+  - Canvi de nom d'un usuari
+  - Assignació de colors per als noms dels usuaris
   - Llistats de clients
   - Eliminar un client concret o eliminar tot el seu conjunt
   - Canviar i crear grups
   - Eliminar grups
+  
 
-## Utilización
+---------------------------------------------------------------------------------------------------------------------------
+## IMPLEMENTACIÓ I UTILITZACIÓ
 
 Iniliciación de un nodo de erlang:
 > erl -name node@127.0.0.1 -setcookie secret
@@ -58,3 +62,7 @@ Envia el mensaje deseado a todos los clientes independiente-mente del gripo en e
 Envia un mensaje privado a un solo cliente.
 ##### - Change_group
 Cambia el cliente de grupo o crea un nuevo grupo en el caso de que el grupo no este creado.
+
+-----------------------------------------------------------------------------------------------------------------------------
+## Conclusió
+Des del nostre punt de vista, aquest projecte ens ha anat bé per aprendre amb molt més detall la funcionalitat i programació de l'Erlang. En qualsevol cas, hem invertit molt temps i esforç en aprendre bé la seva programació ja que en la majoria de cassos en ha resultat ser molt complexe. Creiem que hem assolit bé els continguts que se'ns demanava per a la pràctica encara que ens hauria agradat disposar de més temps per expandir el chat a més funcionalitats.
