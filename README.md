@@ -5,9 +5,10 @@
 
 #### En aquesta pràctica el que inicialment havíem plantetjat és realitzar una expansió del Laboratori 1 (chat). Alguns dels següents punts eren les idees inicials que teniem per implementar, tot i que, a dia d'avui, algunes d'elles no s'han implementat i s'han ficat d'altres.
 
-  - que els usuaris puguin assignar-se un color
-  - creació i administració de canals del chat
-  - eliminació de paraules que no sigui apropiades pel chat.
+  - Els usuaris puguin assignar-se un color
+  - Creació i administració de canals del chat
+  - Eliminació de paraules que no sigui apropiades pel chat.
+  - Implementació d'una interfície gràfica (resultava molt més problemàtic).
 
 #### Aquests son alguns dels exemples que havíem plantejat amb anterioritat. Els punts finals que implementa el chat són:
   - Manipulació d'opcions d'usuari (Les dades es guarden en un fitxer extern que permet guardar la configuració).
