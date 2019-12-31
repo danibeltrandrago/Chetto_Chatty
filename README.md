@@ -68,6 +68,19 @@ Envia el mensaje deseado a todos los clientes independiente-mente del gripo en e
 Envia un mensaje privado a un solo cliente.
 ##### - Change_group
 Cambia el cliente de grupo o crea un nuevo grupo en el caso de que el grupo no este creado.
+##### - Settings
+Abre la lista de comandas que nos permite editar las preferencias de colores y de nombre de nuestro usuario. Dentro de esta lista de comandas tenemos:
+  - changeName: Nos permite cambiar de nombre
+  - changeMyColor: Nos permite cambiar el color que aparecen nuestro nombre de usuario al enviar un mensaje.
+  - changeServerColor: Permite cambiar el color del nombre del Servidor.
+  - changeWarningColor: Permite cambiar el color de los mensajes de emergencia.
+  - changeInfoColor: Permite cambiar el color de los mensajes informativos.
+  - changeMyMessageColor: Permite cambiar el color del mensaje que nosotros hemos enviado
+  - changeMessageColor: Permite cambiar el color del mensaje recibido.
+  - exit: Nos permite salir de la lista de comandas
+  - help: Nos muestra los comandos a realizar
+  
+Todas estas preferencias son guardadas en un archivo para manteneralas y evitar su perdida de sesión a sesión.
 
 -----------------------------------------------------------------------------------------------------------------------------
 ## Conclusió
